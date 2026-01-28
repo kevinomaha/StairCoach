@@ -344,7 +344,7 @@
 
     // Minute prompts
     if (elapsedSec >= nextMinuteMark && nextMinuteMark <= totalSeconds) {
-      const minNum = Math.round(nextMinuteMark / 60);
+      const minNum = Math.round(elapsedSec / 60);
       const prompt = voiceManager.buildMinutePrompt(minNum, minsTotal, style);
       log(prompt);
       voiceManager.speak(prompt);
