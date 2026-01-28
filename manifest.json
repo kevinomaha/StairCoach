@@ -1,0 +1,33 @@
+{
+  "name": "StairCoach - Stair Race Pacer",
+  "short_name": "StairCoach",
+  "description": "Real-time audio pacing for stair races with music, voice prompts, and floor cues",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "background_color": "#0b1020",
+  "theme_color": "#7c5cff",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 192 192'><rect fill='%237c5cff' width='192' height='192'/><text x='50%' y='50%' font-size='100' font-weight='bold' fill='white' text-anchor='middle' dominant-baseline='central'>SC</text><text x='50%' y='130' font-size='24' fill='%23b7c0ff' text-anchor='middle'>PACE</text></svg>",
+      "sizes": "192x192",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    },
+    {
+      "src": "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'><rect fill='%237c5cff' width='512' height='512'/><text x='50%' y='50%' font-size='280' font-weight='bold' fill='white' text-anchor='middle' dominant-baseline='central'>SC</text><text x='50%' y='350' font-size='64' fill='%23b7c0ff' text-anchor='middle'>PACE</text></svg>",
+      "sizes": "512x512",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ],
+  "categories": ["sports", "health", "fitness"],
+  "screenshots": [
+    {
+      "src": "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 540 720'><rect fill='%230b1020' width='540' height='720'/><rect fill='%23121a33' x='20' y='40' width='500' height='120' rx='18'/><text x='270' y='80' font-size='28' font-weight='bold' fill='%23eef2ff' text-anchor='middle'>Stair Race Pacer</text><text x='270' y='130' font-size='14' fill='%23b7c0ff' text-anchor='middle'>Real music + voice guidance</text></svg>",
+      "sizes": "540x720",
+      "type": "image/svg+xml",
+      "form_factor": "narrow"
+    }
+  ]
+}
