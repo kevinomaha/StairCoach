@@ -191,9 +191,7 @@
   let raf = null;
   let nextMinuteMark = 60;  // seconds elapsed threshold
   let nextFloorMark = 1;    // floor number threshold
-
-  function buildMinutePrompt(min, minsTotal, style) {
-    const remaining = minsTotal - min;
+    let lastAnnouncementTime = -Infinity; // Track last voice announcement
     const bank = {
       coach: [
         `Minute ${min}. Stay tall. Drive the knees. You're on pace.`,
@@ -342,16 +340,8 @@
     const style = $("style").value;
     const minsTotal = Math.ceil(totalSeconds / 60);
 
-    // Minute prompts - trigger at 60s, 120s, 180s, etc.
-    if (elapsedSec >= nextMinuteMark && nextMinuteMark <= totalSeconds) {
-      const minNum = Math.floor(nextMinuteMark / 60);
-      const prompt = voiceManager.buildMinutePrompt(minNum, minsTotal, style);
-      log(prompt);
-      voiceManager.speak(prompt);
-      nextMinuteMark += 60;
-    }
-
-    // Floor cues based on time pacing
+    // Floor cues FIRST - they take priority
+    let floorAnnouncedThisFrame = false;
     if ($("floorCalls").checked) {
       const secPerFloor = totalSeconds / totalFloors;
       const currentFloor = Math.floor(elapsedSec / secPerFloor);
@@ -361,6 +351,8 @@
         const txt = voiceManager.floorCalloutText(nextFloorMark, totalFloors, style);
         log(txt);
         voiceManager.speak(txt);
+        lastAnnouncementTime = elapsedSec;
+        floorAnnouncedThisFrame = true;
         nextFloorMark++;
       }
 
@@ -374,6 +366,18 @@
       }
     } else {
       $("nextFloor").textContent = "Off";
+    }
+
+    // Minute prompts - AFTER floors, with buffer to avoid conflicts
+    // Skip if floor announcement just happened (within 2 seconds)
+    const timeSinceLastAnnouncement = elapsedSec - lastAnnouncementTime;
+    if (elapsedSec >= nextMinuteMark && nextMinuteMark <= totalSeconds && timeSinceLastAnnouncement > 2) {
+      const minNum = Math.floor(nextMinuteMark / 60);
+      const prompt = voiceManager.buildMinutePrompt(minNum, minsTotal, style);
+      log(prompt);
+      voiceManager.speak(prompt);
+      lastAnnouncementTime = elapsedSec;
+      nextMinuteMark += 60;
     }
 
     // Next minute UI
