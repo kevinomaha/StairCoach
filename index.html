@@ -342,9 +342,9 @@
     const style = $("style").value;
     const minsTotal = Math.ceil(totalSeconds / 60);
 
-    // Minute prompts
+    // Minute prompts - trigger at 60s, 120s, 180s, etc.
     if (elapsedSec >= nextMinuteMark && nextMinuteMark <= totalSeconds) {
-      const minNum = Math.round(elapsedSec / 60);
+      const minNum = Math.floor(nextMinuteMark / 60);
       const prompt = voiceManager.buildMinutePrompt(minNum, minsTotal, style);
       log(prompt);
       voiceManager.speak(prompt);
@@ -363,9 +363,11 @@
         nextFloorMark++;
       }
 
-      const nextFloorTime = nextFloorMark * (totalSeconds / totalFloors);
+      // Calculate time to next floor
+      const nextFloorTime = nextFloorMark * secPerFloor;
+      const timeToNextFloor = Math.max(0, nextFloorTime - elapsedSec);
       if (nextFloorMark <= totalFloors) {
-        $("nextFloor").textContent = `${Math.max(0, nextFloorTime - elapsedSec).toFixed(0)}s (Floor ${nextFloorMark})`;
+        $("nextFloor").textContent = `${fmtTime(timeToNextFloor)} (Floor ${nextFloorMark})`;
       } else {
         $("nextFloor").textContent = "Done";
       }
