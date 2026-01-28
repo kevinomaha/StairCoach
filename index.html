@@ -191,7 +191,10 @@
   let raf = null;
   let nextMinuteMark = 60;  // seconds elapsed threshold
   let nextFloorMark = 1;    // floor number threshold
-    let lastAnnouncementTime = -Infinity; // Track last voice announcement
+  let lastAnnouncementTime = -Infinity; // Track last voice announcement
+
+  function buildMinutePrompt(min, minsTotal, style) {
+    const remaining = minsTotal - min;
     const bank = {
       coach: [
         `Minute ${min}. Stay tall. Drive the knees. You're on pace.`,
