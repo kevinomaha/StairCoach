@@ -1,0 +1,574 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+  <title>Stair Race Pacer</title>
+  <style>
+    :root { --bg:#0b1020; --card:#121a33; --txt:#eef2ff; --muted:#b7c0ff; --accent:#7c5cff; }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0; font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+      background: radial-gradient(1200px 900px at 20% 0%, #1b2a66 0%, var(--bg) 50%, #070a14 100%);
+      color: var(--txt); min-height: 100vh; padding: 18px;
+    }
+    .wrap { max-width: 760px; margin: 0 auto; display: grid; gap: 14px; }
+    .card {
+      background: rgba(18,26,51,0.78); border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 18px; padding: 14px 14px; backdrop-filter: blur(10px);
+      box-shadow: 0 18px 50px rgba(0,0,0,0.35);
+    }
+    h1 { font-size: 20px; margin: 0 0 4px; }
+    .sub { color: var(--muted); font-size: 13px; margin: 0; }
+    .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    @media (max-width: 560px) { .grid { grid-template-columns: 1fr; } }
+
+    label { display: grid; gap: 6px; font-size: 13px; color: var(--muted); }
+    input, select {
+      width: 100%; padding: 12px 12px; border-radius: 12px;
+      border: 1px solid rgba(255,255,255,0.10);
+      background: rgba(10,14,28,0.65); color: var(--txt); outline: none;
+      font-size: 16px;
+    }
+    input[type="checkbox"] { width: auto; transform: scale(1.15); }
+    .row { display:flex; gap:12px; align-items:center; flex-wrap: wrap; }
+    .btns { display:flex; gap: 10px; flex-wrap: wrap; }
+    button {
+      appearance: none; border: 0; border-radius: 14px;
+      padding: 14px 16px; font-size: 16px; font-weight: 700;
+      background: linear-gradient(135deg, var(--accent), #37c0ff);
+      color: #081022; box-shadow: 0 10px 22px rgba(124,92,255,0.25);
+    }
+    button.secondary {
+      background: rgba(255,255,255,0.10); color: var(--txt);
+      border: 1px solid rgba(255,255,255,0.12); box-shadow: none;
+    }
+    button:disabled { opacity: 0.5; filter: grayscale(0.2); }
+
+    .big {
+      display:grid; gap: 10px;
+      grid-template-columns: 1.2fr 1fr;
+      align-items: center;
+    }
+    @media (max-width: 560px) { .big { grid-template-columns: 1fr; } }
+
+    .timer {
+      font-variant-numeric: tabular-nums;
+      font-size: 46px; font-weight: 900; letter-spacing: 0.5px;
+    }
+    .stats { display:grid; gap: 8px; }
+    .stat {
+      display:flex; justify-content: space-between; gap: 10px;
+      padding: 10px 12px; border-radius: 14px;
+      background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.08);
+      font-variant-numeric: tabular-nums;
+    }
+    .k { color: var(--muted); font-size: 13px; }
+    .v { font-weight: 800; }
+    .log {
+      max-height: 160px; overflow: auto; font-size: 14px; line-height: 1.4;
+      padding: 10px 12px; border-radius: 14px;
+      background: rgba(10,14,28,0.55); border: 1px solid rgba(255,255,255,0.08);
+    }
+    .pill {
+      display:inline-flex; align-items:center; gap: 8px;
+      padding: 8px 10px; border-radius: 999px;
+      background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.10);
+      color: var(--muted); font-size: 13px;
+    }
+    .hint { color: var(--muted); font-size: 12px; margin-top: 6px; }
+  </style>
+</head>
+
+<body>
+  <div class="wrap">
+    <div class="card">
+      <h1>Stair Race Pacer</h1>
+      <p class="sub">Phone-friendly pacer with real music + spoken motivation every minute.</p>
+      <div class="row" style="margin-top:10px;">
+        <span class="pill">🎵 Jamendo music</span>
+        <span class="pill">🗣️ Voice prompts</span>
+        <span class="pill">⏱️ Minute checks</span>
+        <span class="pill">🏢 Floor cues</span>
+      </div>
+      <p class="hint">Tip: iPhone requires a tap to start audio. Keep the screen awake if possible.</p>
+    </div>
+
+    <div class="card">
+      <div class="grid">
+        <label>
+          Floors
+          <input id="floors" type="number" min="1" step="1" value="40" />
+        </label>
+        <label>
+          Total time (mm:ss)
+          <input id="time" type="text" value="8:00" />
+        </label>
+
+        <label>
+          Prompt style
+          <select id="style">
+            <option value="coach">Coachy + direct</option>
+            <option value="hype">High energy hype</option>
+            <option value="calm">Calm & steady</option>
+          </select>
+        </label>
+
+        <label>
+          Music source
+          <select id="musicSource">
+            <option value="jamendo">Jamendo (real music)</option>
+            <option value="off">Off</option>
+          </select>
+        </label>
+
+        <label>
+          Jamendo mood/tag
+          <select id="jamendoTag">
+            <option value="pop">pop</option>
+            <option value="rock">rock</option>
+            <option value="country">country</option>
+            <option value="jazz">jazz</option>            
+            <option value="electronic">electronic</option>
+            <option value="dance">dance</option>
+            <option value="house">house</option>
+            <option value="hiphop">hiphop</option>
+          </select>
+        </label>
+
+        <label class="row" style="justify-content:space-between;">
+          <span>Voice prompts</span>
+          <input id="voiceOn" type="checkbox" checked />
+        </label>
+
+        <label class="row" style="justify-content:space-between;">
+          <span>Floor callouts</span>
+          <input id="floorCalls" type="checkbox" checked />
+        </label>
+
+        <label class="row" style="justify-content:space-between;">
+          <span>Duck music during voice</span>
+          <input id="duckMusic" type="checkbox" checked />
+        </label>
+
+        <label>
+          Music volume
+          <input id="musicVol" type="range" min="0" max="1" step="0.01" value="0.60" />
+        </label>
+
+        <label>
+          Voice volume
+          <input id="voiceVol" type="range" min="0" max="1" step="0.01" value="1" />
+        </label>
+      </div>
+
+      <div class="btns" style="margin-top:12px;">
+        <button id="startBtn">Start</button>
+        <button id="pauseBtn" class="secondary" disabled>Pause</button>
+        <button id="stopBtn" class="secondary" disabled>Stop</button>
+        <button id="loadTrackBtn" class="secondary" type="button">Load new track</button>
+      </div>
+
+      
+    </div>
+
+    <div class="card big">
+      <div>
+        <div class="timer" id="timer">08:00</div>
+        <div class="sub" id="phase">Ready</div>
+      </div>
+      <div class="stats">
+        <div class="stat"><div class="k">Target pace</div><div class="v" id="pace">—</div></div>
+        <div class="stat"><div class="k">Next minute prompt</div><div class="v" id="nextMinute">—</div></div>
+        <div class="stat"><div class="k">Next floor cue</div><div class="v" id="nextFloor">—</div></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="sub" style="margin-bottom:8px;">Coach log</div>
+      <div class="log" id="log"></div>
+    </div>
+  </div>
+
+<script>
+(() => {
+  // ===== Jamendo config (client_id only) =====
+  const JAMENDO_CLIENT_ID = "f12072d3";
+
+  // ---------- Helpers ----------
+  const $ = (id) => document.getElementById(id);
+  const logEl = $("log");
+
+  function log(msg) {
+    const t = new Date().toLocaleTimeString([], {hour:"2-digit", minute:"2-digit", second:"2-digit"});
+    const line = document.createElement("div");
+    line.textContent = `[${t}] ${msg}`;
+    logEl.appendChild(line);
+    logEl.scrollTop = logEl.scrollHeight;
+  }
+
+  function clamp(n, a, b){ return Math.max(a, Math.min(b, n)); }
+
+  function parseTimeMMSS(s) {
+    const m = String(s).trim().match(/^(\d+)\s*:\s*([0-5]\d)$/);
+    if (m) return (+m[1] * 60) + (+m[2]);
+    const asNum = Number(String(s).trim());
+    if (Number.isFinite(asNum) && asNum > 0) return Math.round(asNum);
+    return 8 * 60;
+  }
+
+  function fmtTime(sec) {
+    sec = Math.max(0, Math.floor(sec));
+    const m = Math.floor(sec / 60);
+    const s = sec % 60;
+    return `${String(m).padStart(2,"0")}:${String(s).padStart(2,"0")}`;
+  }
+
+  // ---------- Speech + Music Ducking ----------
+  let voiceVolume = 1;
+
+  function setDucked(isDucked) {
+    if (!$("duckMusic").checked) return;
+    const target = isDucked ? Math.max(0, Number($("musicVol").value) * 0.25) : Number($("musicVol").value);
+    if (jamendoAudio) jamendoAudio.volume = target;
+  }
+
+  function speak(text) {
+    if (!$("voiceOn").checked) return;
+    if (!("speechSynthesis" in window)) { log("Speech not supported on this device/browser."); return; }
+
+    window.speechSynthesis.cancel();
+
+    const u = new SpeechSynthesisUtterance(text);
+    u.rate = 1.05;
+    u.pitch = 1.0;
+    u.volume = clamp(voiceVolume, 0, 1);
+
+    const voices = window.speechSynthesis.getVoices?.() || [];
+    const v = voices.find(v => /en-US/i.test(v.lang)) || voices[0];
+    if (v) u.voice = v;
+
+    u.onstart = () => setDucked(true);
+    u.onend = () => setDucked(false);
+    u.onerror = () => setDucked(false);
+
+    window.speechSynthesis.speak(u);
+  }
+
+  // ---------- Jamendo Music ----------
+  let jamendoAudio = null;
+  let currentTrack = null;
+
+  function stopJamendo() {
+    if (jamendoAudio) {
+      try { jamendoAudio.pause(); } catch {}
+      jamendoAudio.src = "";
+      jamendoAudio = null;
+    }
+    currentTrack = null;
+  }
+
+  async function loadJamendoUpbeatTrack() {
+    const tag = $("jamendoTag").value;
+
+    // Ask Jamendo for a popular track in the selected mood.
+    // We randomize within first 20 to avoid same song every time.
+    const offset = Math.floor(Math.random() * 20);
+
+    const url =
+      `https://api.jamendo.com/v3.0/tracks/?client_id=${encodeURIComponent(JAMENDO_CLIENT_ID)}` +
+      `&format=json&limit=1&offset=${offset}` +
+      `&audioformat=mp32&order=popularity_total` +
+      `&tags=${encodeURIComponent(tag)}`;
+
+    log(`Loading Jamendo track (${tag})…`);
+
+    const res = await fetch(url, { cache: "no-store" });
+    if (!res.ok) throw new Error(`Jamendo HTTP ${res.status}`);
+    const data = await res.json();
+    const track = data?.results?.[0];
+
+    if (!track?.audio) {
+      log("No Jamendo track returned. Try a different tag.");
+      return;
+    }
+
+    stopJamendo();
+    jamendoAudio = new Audio(track.audio);
+    jamendoAudio.loop = true;
+    jamendoAudio.crossOrigin = "anonymous";
+    jamendoAudio.volume = Number($("musicVol").value);
+
+    await jamendoAudio.play();
+
+    currentTrack = { name: track.name, artist: track.artist_name };
+    log(`🎵 Now playing: ${track.name} — ${track.artist_name}`);
+  }
+
+  async function ensureMusicForStart() {
+    const src = $("musicSource").value;
+    if (src === "off") {
+      stopJamendo();
+      return;
+    }
+    // Jamendo
+    if (!jamendoAudio) {
+      await loadJamendoUpbeatTrack();
+    } else {
+      // resume if paused
+      try { await jamendoAudio.play(); } catch {}
+    }
+  }
+
+  // ---------- Pacer logic ----------
+  let totalSeconds = 8*60;
+  let totalFloors = 40;
+
+  let started = false;
+  let paused = false;
+
+  let t0 = 0;            // performance.now start time
+  let pausedAt = 0;      // performance.now pause time
+  let pauseAccum = 0;    // ms
+
+  let raf = null;
+  let nextMinuteMark = 60;  // seconds elapsed threshold
+  let nextFloorMark = 1;    // floor number threshold
+
+  function buildMinutePrompt(min, minsTotal, style) {
+    const remaining = minsTotal - min;
+    const bank = {
+      coach: [
+        `Minute ${min}. Stay tall. Drive the knees. You're on pace.`,
+        `Minute ${min}. Smooth steps. Light hands on the rail. Breathe.`,
+        `Minute ${min}. Controlled power. You can hold this.`,
+        `Minute ${min}. Quick feet. Strong core. Keep moving.`
+      ],
+      hype: [
+        `Minute ${min}! Let's go! You’re hunting floors. Keep it loud!`,
+        `Minute ${min}! Push push push! You’re stronger than the burn!`,
+        `Minute ${min}! You own this staircase. Attack the next set!`,
+        `Minute ${min}! Big energy! Keep the cadence and fly!`
+      ],
+      calm: [
+        `Minute ${min}. Steady rhythm. In through the nose, out through the mouth.`,
+        `Minute ${min}. Relax the shoulders. Keep your breath smooth.`,
+        `Minute ${min}. One step at a time. You’re doing great.`,
+        `Minute ${min}. Stay consistent. Calm power.`
+      ]
+    };
+
+    const pick = bank[style][(min - 1) % bank[style].length];
+    if (remaining === 1) return `${pick} One minute left — finish strong.`;
+    if (remaining === 0) return `${pick} Final push — empty the tank!`;
+    return pick;
+  }
+
+  function floorCalloutText(floor, floorsTotal, style) {
+    const pct = Math.round((floor / floorsTotal) * 100);
+    if (floor === floorsTotal) return `Floor ${floor}. Finish!`;
+    if (style === "hype") return `Floor ${floor}! ${pct} percent. Keep climbing!`;
+    if (style === "calm") return `Floor ${floor}. ${pct} percent. Smooth and steady.`;
+    return `Floor ${floor}. ${pct} percent. On pace.`;
+  }
+
+  function updateDerivedUI() {
+    totalFloors = Math.max(1, Math.floor(Number($("floors").value || 40)));
+    totalSeconds = Math.max(10, parseTimeMMSS($("time").value));
+    $("timer").textContent = fmtTime(totalSeconds);
+
+    const floorsPerMin = totalFloors / (totalSeconds / 60);
+    const secPerFloor = totalSeconds / totalFloors;
+
+    $("pace").textContent = `${floorsPerMin.toFixed(2)} floors/min • ${secPerFloor.toFixed(1)} sec/floor`;
+  }
+
+  async function start() {
+    updateDerivedUI();
+
+    // Prime audio + speech (mobile requires a tap)
+    try {
+      await ensureMusicForStart();
+    } catch (e) {
+      log(`Music error: ${e.message}. Continuing without music.`);
+      stopJamendo();
+    }
+
+    const minsTotal = Math.ceil(totalSeconds / 60);
+    const style = $("style").value;
+
+    started = true; paused = false;
+    pauseAccum = 0; t0 = performance.now();
+    nextMinuteMark = 60;
+    nextFloorMark = 1;
+
+    $("startBtn").disabled = true;
+    $("pauseBtn").disabled = false;
+    $("stopBtn").disabled = false;
+    $("phase").textContent = "Go time";
+
+    log("START");
+    speak(style === "hype"
+      ? "Let’s go! Forty floors. Lock the rhythm. Start climbing!"
+      : style === "calm"
+        ? "Start steady. Find your rhythm. You’ve got this."
+        : "Start strong. Hold your pace. One minute at a time.");
+
+    $("nextMinute").textContent = "1:00";
+    const secPerFloor = totalSeconds / totalFloors;
+    $("nextFloor").textContent = `${secPerFloor.toFixed(0)}s (Floor 1)`;
+
+    tick();
+  }
+
+  function pause() {
+    if (!started) return;
+    if (!paused) {
+      paused = true;
+      pausedAt = performance.now();
+      try { jamendoAudio?.pause(); } catch {}
+      window.speechSynthesis?.cancel?.();
+      $("pauseBtn").textContent = "Resume";
+      $("phase").textContent = "Paused";
+      log("PAUSE");
+    } else {
+      paused = false;
+      pauseAccum += performance.now() - pausedAt;
+      try { jamendoAudio?.play(); } catch {}
+      $("pauseBtn").textContent = "Pause";
+      $("phase").textContent = "Go time";
+      log("RESUME");
+      tick();
+    }
+  }
+
+  function stop() {
+    if (!started) return;
+    started = false; paused = false;
+    stopJamendo();
+    window.speechSynthesis?.cancel?.();
+
+    $("startBtn").disabled = false;
+    $("pauseBtn").disabled = true;
+    $("stopBtn").disabled = true;
+    $("pauseBtn").textContent = "Pause";
+    $("phase").textContent = "Ready";
+
+    cancelAnimationFrame(raf);
+    raf = null;
+
+    updateDerivedUI();
+    $("nextMinute").textContent = "—";
+    $("nextFloor").textContent = "—";
+    log("STOP");
+  }
+
+  function finish() {
+    // keep music on briefly; you can stop if you prefer
+    const style = $("style").value;
+    $("phase").textContent = "Finished";
+    log("FINISH");
+    speak(style === "hype"
+      ? "Done! You crushed it! Great finish!"
+      : "Finished. Great work. Breathe and recover.");
+  }
+
+  function tick() {
+    if (!started || paused) return;
+    const now = performance.now();
+    const elapsedMs = now - t0 - pauseAccum;
+    const elapsedSec = elapsedMs / 1000;
+    const remaining = totalSeconds - elapsedSec;
+
+    $("timer").textContent = fmtTime(remaining);
+
+    const style = $("style").value;
+    const minsTotal = Math.ceil(totalSeconds / 60);
+
+    // Minute prompts
+    if (elapsedSec >= nextMinuteMark && nextMinuteMark <= totalSeconds) {
+      const minNum = Math.round(nextMinuteMark / 60);
+      const prompt = buildMinutePrompt(minNum, minsTotal, style);
+      log(prompt);
+      speak(prompt);
+      nextMinuteMark += 60;
+    }
+
+    // Floor cues based on time pacing
+    if ($("floorCalls").checked) {
+      const secPerFloor = totalSeconds / totalFloors;
+      const targetFloor = Math.floor(elapsedSec / secPerFloor) + 1;
+
+      while (nextFloorMark <= totalFloors && nextFloorMark <= targetFloor) {
+        const txt = floorCalloutText(nextFloorMark, totalFloors, style);
+        log(txt);
+        speak(txt);
+        nextFloorMark++;
+      }
+
+      const nextFloorTime = nextFloorMark * (totalSeconds / totalFloors);
+      if (nextFloorMark <= totalFloors) {
+        $("nextFloor").textContent = `${Math.max(0, nextFloorTime - elapsedSec).toFixed(0)}s (Floor ${nextFloorMark})`;
+      } else {
+        $("nextFloor").textContent = "Done";
+      }
+    } else {
+      $("nextFloor").textContent = "Off";
+    }
+
+    // Next minute UI
+    if (nextMinuteMark <= totalSeconds) {
+      $("nextMinute").textContent = fmtTime(nextMinuteMark - elapsedSec);
+    } else {
+      $("nextMinute").textContent = "—";
+    }
+
+    if (remaining <= 0) {
+      $("timer").textContent = "00:00";
+      finish();
+      return;
+    }
+
+    raf = requestAnimationFrame(tick);
+  }
+
+  // ---------- Wire up controls ----------
+  function init() {
+    updateDerivedUI();
+    log("Ready. Set floors/time then tap Start.");
+
+    $("floors").addEventListener("input", () => { if (!started) updateDerivedUI(); });
+    $("time").addEventListener("input", () => { if (!started) updateDerivedUI(); });
+
+    $("musicVol").addEventListener("input", (e) => {
+      const v = Number(e.target.value);
+      if (jamendoAudio) jamendoAudio.volume = v;
+    });
+
+    $("voiceVol").addEventListener("input", (e) => { voiceVolume = Number(e.target.value); });
+
+    $("startBtn").addEventListener("click", () => start());
+    $("pauseBtn").addEventListener("click", pause);
+    $("stopBtn").addEventListener("click", stop);
+
+    $("loadTrackBtn").addEventListener("click", async () => {
+      if ($("musicSource").value !== "jamendo") {
+        log("Switch Music source to Jamendo to load a track.");
+        return;
+      }
+      try {
+        await loadJamendoUpbeatTrack();
+      } catch (e) {
+        log(`Jamendo error: ${e.message}`);
+      }
+    });
+
+    // Warm up voices list
+    try { window.speechSynthesis?.getVoices?.(); } catch {}
+  }
+
+  init();
+})();
+</script>
+</body>
+</html>
