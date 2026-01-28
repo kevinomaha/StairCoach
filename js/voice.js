@@ -39,7 +39,10 @@ export class VoiceManager {
    * Speak text using Web Speech API
    */
   speak(text) {
-    if (!this.$("voiceOn").checked) return;
+    if (!this.$("voiceOn").checked) {
+      this.log("Voice prompts disabled - skipping: " + text.substring(0, 30) + "...");
+      return;
+    }
     if (!("speechSynthesis" in window)) {
       this.log("Speech not supported on this device/browser.");
       return;
@@ -52,15 +55,41 @@ export class VoiceManager {
     u.pitch = 1.0;
     u.volume = this.clamp(this.voiceVolume, 0, 1);
 
-    const voices = window.speechSynthesis.getVoices?.() || [];
+    // Wait for voices to load if needed
+    let voices = window.speechSynthesis.getVoices?.() || [];
+    if (voices.length === 0) {
+      // Voices not loaded yet, try again after a short delay
+      setTimeout(() => {
+        voices = window.speechSynthesis.getVoices?.() || [];
+        this._assignVoiceAndSpeak(u, voices, text);
+      }, 100);
+    } else {
+      this._assignVoiceAndSpeak(u, voices, text);
+    }
+  }
+
+  /**
+   * Helper to assign voice and speak
+   */
+  _assignVoiceAndSpeak(u, voices, text) {
     const v = voices.find(v => /en-US/i.test(v.lang)) || voices[0];
     if (v) u.voice = v;
 
-    u.onstart = () => this.setDucked(true);
+    u.onstart = () => {
+      this.setDucked(true);
+      this.log("🔊 Speaking: " + text.substring(0, 40) + (text.length > 40 ? "..." : ""));
+    };
     u.onend = () => this.setDucked(false);
-    u.onerror = () => this.setDucked(false);
+    u.onerror = (err) => {
+      this.log("Speech error: " + err.error);
+      this.setDucked(false);
+    };
 
-    window.speechSynthesis.speak(u);
+    try {
+      window.speechSynthesis.speak(u);
+    } catch (err) {
+      this.log("Failed to speak: " + err.message);
+    }
   }
 
   /**
@@ -125,7 +154,18 @@ export class VoiceManager {
    */
   warmUpVoices() {
     try {
-      window.speechSynthesis?.getVoices?.();
+      const voices = window.speechSynthesis?.getVoices?.();
+      if (voices && voices.length > 0) {
+        this.log(`🎙️ Voice system ready (${voices.length} voices available)`);
+      } else {
+        // Voices may load asynchronously
+        window.speechSynthesis.onvoiceschanged = () => {
+          const v = window.speechSynthesis.getVoices?.();
+          if (v && v.length > 0) {
+            this.log(`🎙️ Voice system ready (${v.length} voices available)`);
+          }
+        };
+      }
     } catch {}
   }
 }
