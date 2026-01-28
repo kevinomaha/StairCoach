@@ -273,7 +273,7 @@
 
     $("nextMinute").textContent = "1:00";
     const secPerFloor = totalSeconds / totalFloors;
-    $("nextFloor").textContent = `${secPerFloor.toFixed(0)}s (Floor 1)`;
+    $("nextFloor").textContent = `${fmtTime(secPerFloor)} (Floor 1)`;
 
     tick();
   }
@@ -354,19 +354,20 @@
     // Floor cues based on time pacing
     if ($("floorCalls").checked) {
       const secPerFloor = totalSeconds / totalFloors;
-      const targetFloor = Math.floor(elapsedSec / secPerFloor) + 1;
-
-      while (nextFloorMark <= totalFloors && nextFloorMark <= targetFloor) {
+      const currentFloor = Math.floor(elapsedSec / secPerFloor);
+      
+      // Fire announcements for any floors we've just reached
+      while (nextFloorMark <= totalFloors && nextFloorMark <= currentFloor) {
         const txt = voiceManager.floorCalloutText(nextFloorMark, totalFloors, style);
         log(txt);
         voiceManager.speak(txt);
         nextFloorMark++;
       }
 
-      // Calculate time to next floor
-      const nextFloorTime = nextFloorMark * secPerFloor;
-      const timeToNextFloor = Math.max(0, nextFloorTime - elapsedSec);
+      // Show time to next floor
       if (nextFloorMark <= totalFloors) {
+        const nextFloorTime = nextFloorMark * secPerFloor;
+        const timeToNextFloor = Math.max(0, nextFloorTime - elapsedSec);
         $("nextFloor").textContent = `${fmtTime(timeToNextFloor)} (Floor ${nextFloorMark})`;
       } else {
         $("nextFloor").textContent = "Done";
