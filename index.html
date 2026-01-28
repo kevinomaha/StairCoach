@@ -119,6 +119,7 @@
 
 <script type="module">
   import { VoiceManager } from './js/voice.js';
+  import { MusicManager } from './js/music.js';
 
   (() => {
     // ===== Jamendo config (client_id only) =====
@@ -160,72 +161,13 @@
       clampFn: clamp
     });
 
-    // ---------- Jamendo Music ----------
-    let jamendoAudio = null;
-    let currentTrack = null;
-
-    function stopJamendo() {
-      if (jamendoAudio) {
-        try { jamendoAudio.pause(); } catch {}
-        jamendoAudio.src = "";
-        jamendoAudio = null;
-      }
-      currentTrack = null;
-      voiceManager.setJamendoAudio(null);
-    }
-
-    async function loadJamendoUpbeatTrack() {
-      const tag = $("jamendoTag").value;
-
-      // Ask Jamendo for a popular track in the selected mood.
-      // We randomize within first 20 to avoid same song every time.
-      const offset = Math.floor(Math.random() * 20);
-
-      const url =
-        `https://api.jamendo.com/v3.0/tracks/?client_id=${encodeURIComponent(JAMENDO_CLIENT_ID)}` +
-        `&format=json&limit=1&offset=${offset}` +
-        `&audioformat=mp32&order=popularity_total` +
-        `&tags=${encodeURIComponent(tag)}`;
-
-      log(`Loading Jamendo track (${tag})…`);
-
-      const res = await fetch(url, { cache: "no-store" });
-      if (!res.ok) throw new Error(`Jamendo HTTP ${res.status}`);
-      const data = await res.json();
-      const track = data?.results?.[0];
-
-      if (!track?.audio) {
-        log("No Jamendo track returned. Try a different tag.");
-        return;
-      }
-
-      stopJamendo();
-      jamendoAudio = new Audio(track.audio);
-      jamendoAudio.loop = true;
-      jamendoAudio.crossOrigin = "anonymous";
-      jamendoAudio.volume = Number($("musicVol").value);
-      voiceManager.setJamendoAudio(jamendoAudio);
-
-      await jamendoAudio.play();
-
-      currentTrack = { name: track.name, artist: track.artist_name };
-      log(`🎵 Now playing: ${track.name} — ${track.artist_name}`);
-    }
-
-    async function ensureMusicForStart() {
-      const src = $("musicSource").value;
-      if (src === "off") {
-        stopJamendo();
-        return;
-      }
-      // Jamendo
-      if (!jamendoAudio) {
-        await loadJamendoUpbeatTrack();
-      } else {
-        // resume if paused
-        try { await jamendoAudio.play(); } catch {}
-      }
-    }
+    // ---------- Music Manager ----------
+    const musicManager = new MusicManager({
+      clientId: JAMENDO_CLIENT_ID,
+      getElementFn: $,
+      getLogFn: log
+    });
+    musicManager.setVoiceManager(voiceManager);
 
   // ---------- Pacer logic ----------
   let totalSeconds = 8*60;
@@ -295,10 +237,10 @@
 
     // Prime audio + speech (mobile requires a tap)
     try {
-      await ensureMusicForStart();
+      await musicManager.ensureForStart();
     } catch (e) {
       log(`Music error: ${e.message}. Continuing without music.`);
-      stopJamendo();
+      musicManager.stop();
     }
 
     const minsTotal = Math.ceil(totalSeconds / 60);
@@ -333,7 +275,7 @@
     if (!paused) {
       paused = true;
       pausedAt = performance.now();
-      try { jamendoAudio?.pause(); } catch {}
+      try { musicManager.pause(); } catch {}
       voiceManager.cancel();
       $("pauseBtn").textContent = "Resume";
       $("phase").textContent = "Paused";
@@ -341,7 +283,7 @@
     } else {
       paused = false;
       pauseAccum += performance.now() - pausedAt;
-      try { jamendoAudio?.play(); } catch {}
+      try { musicManager.play(); } catch {}
       $("pauseBtn").textContent = "Pause";
       $("phase").textContent = "Go time";
       log("RESUME");
@@ -352,7 +294,7 @@
   function stop() {
     if (!started) return;
     started = false; paused = false;
-    stopJamendo();
+    musicManager.stop();
     voiceManager.cancel();
 
     $("startBtn").disabled = false;
@@ -449,7 +391,7 @@
 
     $("musicVol").addEventListener("input", (e) => {
       const v = Number(e.target.value);
-      if (jamendoAudio) jamendoAudio.volume = v;
+      musicManager.setVolume(v);
     });
 
     $("voiceVol").addEventListener("input", (e) => { voiceManager.setVoiceVolume(e.target.value); });
@@ -464,7 +406,7 @@
         return;
       }
       try {
-        await loadJamendoUpbeatTrack();
+        await musicManager.loadTrack();
       } catch (e) {
         log(`Jamendo error: ${e.message}`);
       }

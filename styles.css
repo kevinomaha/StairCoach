@@ -1,6 +1,6 @@
 :root {
-  --bg: #0b1020;
-  --card: #121a33;
+  --bg: #0a3515;
+  --card: #11532c;
   --txt: #eef2ff;
   --muted: #b7c0ff;
   --accent: #7c5cff;
@@ -27,7 +27,7 @@ body {
 }
 
 .card {
-  background: rgba(18, 26, 51, 0.78);
+  background: rgba(10, 43, 31, 0.78);
   border: 1px solid rgba(255, 255, 255, 0.08);
   border-radius: 18px;
   padding: 14px 14px;
