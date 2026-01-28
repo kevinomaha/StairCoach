@@ -117,135 +117,115 @@
     </div>
   </div>
 
-<script>
-(() => {
-  // ===== Jamendo config (client_id only) =====
-  const JAMENDO_CLIENT_ID = "f12072d3";
+<script type="module">
+  import { VoiceManager } from './js/voice.js';
 
-  // ---------- Helpers ----------
-  const $ = (id) => document.getElementById(id);
-  const logEl = $("log");
+  (() => {
+    // ===== Jamendo config (client_id only) =====
+    const JAMENDO_CLIENT_ID = "f12072d3";
 
-  function log(msg) {
-    const t = new Date().toLocaleTimeString([], {hour:"2-digit", minute:"2-digit", second:"2-digit"});
-    const line = document.createElement("div");
-    line.textContent = `[${t}] ${msg}`;
-    logEl.appendChild(line);
-    logEl.scrollTop = logEl.scrollHeight;
-  }
+    // ---------- Helpers ----------
+    const $ = (id) => document.getElementById(id);
+    const logEl = $("log");
 
-  function clamp(n, a, b){ return Math.max(a, Math.min(b, n)); }
-
-  function parseTimeMMSS(s) {
-    const m = String(s).trim().match(/^(\d+)\s*:\s*([0-5]\d)$/);
-    if (m) return (+m[1] * 60) + (+m[2]);
-    const asNum = Number(String(s).trim());
-    if (Number.isFinite(asNum) && asNum > 0) return Math.round(asNum);
-    return 8 * 60;
-  }
-
-  function fmtTime(sec) {
-    sec = Math.max(0, Math.floor(sec));
-    const m = Math.floor(sec / 60);
-    const s = sec % 60;
-    return `${String(m).padStart(2,"0")}:${String(s).padStart(2,"0")}`;
-  }
-
-  // ---------- Speech + Music Ducking ----------
-  let voiceVolume = 1;
-
-  function setDucked(isDucked) {
-    if (!$("duckMusic").checked) return;
-    const target = isDucked ? Math.max(0, Number($("musicVol").value) * 0.25) : Number($("musicVol").value);
-    if (jamendoAudio) jamendoAudio.volume = target;
-  }
-
-  function speak(text) {
-    if (!$("voiceOn").checked) return;
-    if (!("speechSynthesis" in window)) { log("Speech not supported on this device/browser."); return; }
-
-    window.speechSynthesis.cancel();
-
-    const u = new SpeechSynthesisUtterance(text);
-    u.rate = 1.05;
-    u.pitch = 1.0;
-    u.volume = clamp(voiceVolume, 0, 1);
-
-    const voices = window.speechSynthesis.getVoices?.() || [];
-    const v = voices.find(v => /en-US/i.test(v.lang)) || voices[0];
-    if (v) u.voice = v;
-
-    u.onstart = () => setDucked(true);
-    u.onend = () => setDucked(false);
-    u.onerror = () => setDucked(false);
-
-    window.speechSynthesis.speak(u);
-  }
-
-  // ---------- Jamendo Music ----------
-  let jamendoAudio = null;
-  let currentTrack = null;
-
-  function stopJamendo() {
-    if (jamendoAudio) {
-      try { jamendoAudio.pause(); } catch {}
-      jamendoAudio.src = "";
-      jamendoAudio = null;
-    }
-    currentTrack = null;
-  }
-
-  async function loadJamendoUpbeatTrack() {
-    const tag = $("jamendoTag").value;
-
-    // Ask Jamendo for a popular track in the selected mood.
-    // We randomize within first 20 to avoid same song every time.
-    const offset = Math.floor(Math.random() * 20);
-
-    const url =
-      `https://api.jamendo.com/v3.0/tracks/?client_id=${encodeURIComponent(JAMENDO_CLIENT_ID)}` +
-      `&format=json&limit=1&offset=${offset}` +
-      `&audioformat=mp32&order=popularity_total` +
-      `&tags=${encodeURIComponent(tag)}`;
-
-    log(`Loading Jamendo track (${tag})…`);
-
-    const res = await fetch(url, { cache: "no-store" });
-    if (!res.ok) throw new Error(`Jamendo HTTP ${res.status}`);
-    const data = await res.json();
-    const track = data?.results?.[0];
-
-    if (!track?.audio) {
-      log("No Jamendo track returned. Try a different tag.");
-      return;
+    function log(msg) {
+      const t = new Date().toLocaleTimeString([], {hour:"2-digit", minute:"2-digit", second:"2-digit"});
+      const line = document.createElement("div");
+      line.textContent = `[${t}] ${msg}`;
+      logEl.appendChild(line);
+      logEl.scrollTop = logEl.scrollHeight;
     }
 
-    stopJamendo();
-    jamendoAudio = new Audio(track.audio);
-    jamendoAudio.loop = true;
-    jamendoAudio.crossOrigin = "anonymous";
-    jamendoAudio.volume = Number($("musicVol").value);
+    function clamp(n, a, b){ return Math.max(a, Math.min(b, n)); }
 
-    await jamendoAudio.play();
+    function parseTimeMMSS(s) {
+      const m = String(s).trim().match(/^(\d+)\s*:\s*([0-5]\d)$/);
+      if (m) return (+m[1] * 60) + (+m[2]);
+      const asNum = Number(String(s).trim());
+      if (Number.isFinite(asNum) && asNum > 0) return Math.round(asNum);
+      return 8 * 60;
+    }
 
-    currentTrack = { name: track.name, artist: track.artist_name };
-    log(`🎵 Now playing: ${track.name} — ${track.artist_name}`);
-  }
+    function fmtTime(sec) {
+      sec = Math.max(0, Math.floor(sec));
+      const m = Math.floor(sec / 60);
+      const s = sec % 60;
+      return `${String(m).padStart(2,"0")}:${String(s).padStart(2,"0")}`;
+    }
 
-  async function ensureMusicForStart() {
-    const src = $("musicSource").value;
-    if (src === "off") {
+    // ---------- Voice Manager ----------
+    const voiceManager = new VoiceManager({
+      getElementFn: $,
+      getLogFn: log,
+      clampFn: clamp
+    });
+
+    // ---------- Jamendo Music ----------
+    let jamendoAudio = null;
+    let currentTrack = null;
+
+    function stopJamendo() {
+      if (jamendoAudio) {
+        try { jamendoAudio.pause(); } catch {}
+        jamendoAudio.src = "";
+        jamendoAudio = null;
+      }
+      currentTrack = null;
+      voiceManager.setJamendoAudio(null);
+    }
+
+    async function loadJamendoUpbeatTrack() {
+      const tag = $("jamendoTag").value;
+
+      // Ask Jamendo for a popular track in the selected mood.
+      // We randomize within first 20 to avoid same song every time.
+      const offset = Math.floor(Math.random() * 20);
+
+      const url =
+        `https://api.jamendo.com/v3.0/tracks/?client_id=${encodeURIComponent(JAMENDO_CLIENT_ID)}` +
+        `&format=json&limit=1&offset=${offset}` +
+        `&audioformat=mp32&order=popularity_total` +
+        `&tags=${encodeURIComponent(tag)}`;
+
+      log(`Loading Jamendo track (${tag})…`);
+
+      const res = await fetch(url, { cache: "no-store" });
+      if (!res.ok) throw new Error(`Jamendo HTTP ${res.status}`);
+      const data = await res.json();
+      const track = data?.results?.[0];
+
+      if (!track?.audio) {
+        log("No Jamendo track returned. Try a different tag.");
+        return;
+      }
+
       stopJamendo();
-      return;
+      jamendoAudio = new Audio(track.audio);
+      jamendoAudio.loop = true;
+      jamendoAudio.crossOrigin = "anonymous";
+      jamendoAudio.volume = Number($("musicVol").value);
+      voiceManager.setJamendoAudio(jamendoAudio);
+
+      await jamendoAudio.play();
+
+      currentTrack = { name: track.name, artist: track.artist_name };
+      log(`🎵 Now playing: ${track.name} — ${track.artist_name}`);
     }
-    // Jamendo
-    if (!jamendoAudio) {
-      await loadJamendoUpbeatTrack();
-    } else {
-      // resume if paused
-      try { await jamendoAudio.play(); } catch {}
+
+    async function ensureMusicForStart() {
+      const src = $("musicSource").value;
+      if (src === "off") {
+        stopJamendo();
+        return;
+      }
+      // Jamendo
+      if (!jamendoAudio) {
+        await loadJamendoUpbeatTrack();
+      } else {
+        // resume if paused
+        try { await jamendoAudio.play(); } catch {}
+      }
     }
-  }
 
   // ---------- Pacer logic ----------
   let totalSeconds = 8*60;
@@ -335,7 +315,7 @@
     $("phase").textContent = "Go time";
 
     log("START");
-    speak(style === "hype"
+    voiceManager.speak(style === "hype"
       ? "Let’s go! Forty floors. Lock the rhythm. Start climbing!"
       : style === "calm"
         ? "Start steady. Find your rhythm. You’ve got this."
@@ -354,7 +334,7 @@
       paused = true;
       pausedAt = performance.now();
       try { jamendoAudio?.pause(); } catch {}
-      window.speechSynthesis?.cancel?.();
+      voiceManager.cancel();
       $("pauseBtn").textContent = "Resume";
       $("phase").textContent = "Paused";
       log("PAUSE");
@@ -373,7 +353,7 @@
     if (!started) return;
     started = false; paused = false;
     stopJamendo();
-    window.speechSynthesis?.cancel?.();
+    voiceManager.cancel();
 
     $("startBtn").disabled = false;
     $("pauseBtn").disabled = true;
@@ -395,7 +375,7 @@
     const style = $("style").value;
     $("phase").textContent = "Finished";
     log("FINISH");
-    speak(style === "hype"
+    voiceManager.speak(style === "hype"
       ? "Done! You crushed it! Great finish!"
       : "Finished. Great work. Breathe and recover.");
   }
@@ -415,9 +395,9 @@
     // Minute prompts
     if (elapsedSec >= nextMinuteMark && nextMinuteMark <= totalSeconds) {
       const minNum = Math.round(nextMinuteMark / 60);
-      const prompt = buildMinutePrompt(minNum, minsTotal, style);
+      const prompt = voiceManager.buildMinutePrompt(minNum, minsTotal, style);
       log(prompt);
-      speak(prompt);
+      voiceManager.speak(prompt);
       nextMinuteMark += 60;
     }
 
@@ -427,9 +407,9 @@
       const targetFloor = Math.floor(elapsedSec / secPerFloor) + 1;
 
       while (nextFloorMark <= totalFloors && nextFloorMark <= targetFloor) {
-        const txt = floorCalloutText(nextFloorMark, totalFloors, style);
+        const txt = voiceManager.floorCalloutText(nextFloorMark, totalFloors, style);
         log(txt);
-        speak(txt);
+        voiceManager.speak(txt);
         nextFloorMark++;
       }
 
@@ -472,7 +452,7 @@
       if (jamendoAudio) jamendoAudio.volume = v;
     });
 
-    $("voiceVol").addEventListener("input", (e) => { voiceVolume = Number(e.target.value); });
+    $("voiceVol").addEventListener("input", (e) => { voiceManager.setVoiceVolume(e.target.value); });
 
     $("startBtn").addEventListener("click", () => start());
     $("pauseBtn").addEventListener("click", pause);
@@ -491,11 +471,11 @@
     });
 
     // Warm up voices list
-    try { window.speechSynthesis?.getVoices?.(); } catch {}
-  }
+    voiceManager.warmUpVoices();
+    }
 
-  init();
-})();
+    init();
+  })();
 </script>
 </body>
 </html>
