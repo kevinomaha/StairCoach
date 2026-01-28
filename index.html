@@ -127,10 +127,11 @@
 <script type="module">
   import { VoiceManager } from './js/voice.js';
   import { MusicManager } from './js/music.js';
+  import { config } from './js/config.js';
 
   (() => {
-    // ===== Jamendo config (client_id only) =====
-    const JAMENDO_CLIENT_ID = "f12072d3";
+    // Use client_id from config
+    const JAMENDO_CLIENT_ID = config.jamendoClientId;
 
     // ---------- Helpers ----------
     const $ = (id) => document.getElementById(id);
